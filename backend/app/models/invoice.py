@@ -89,7 +89,7 @@ class LineItem(Base):
     # Line item details
     description = Column(Text, nullable=False)
     quantity = Column(DECIMAL(10, 2), nullable=False)
-    unit_price = Column(DECIMAL(10, 2), nullable=False)
+    rate = Column(DECIMAL(10, 2), nullable=False)
     amount = Column(DECIMAL(10, 2), nullable=False)
     
     # Order

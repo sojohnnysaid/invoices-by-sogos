@@ -73,8 +73,8 @@ class CRUDInvoice(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         subtotal = Decimal('0')
         for item in line_items:
             quantity = Decimal(str(item.get('quantity', 0)))
-            unit_price = Decimal(str(item.get('unit_price', 0)))
-            amount = quantity * unit_price
+            rate = Decimal(str(item.get('rate', 0)))
+            amount = quantity * rate
             item['amount'] = float(amount)
             subtotal += amount
         
@@ -185,7 +185,7 @@ class CRUDInvoice(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
             line_items_dict = [
                 {
                     'quantity': float(item.quantity),
-                    'unit_price': float(item.unit_price),
+                    'rate': float(item.rate),
                     'amount': float(item.amount)
                 }
                 for item in line_items
@@ -249,7 +249,7 @@ class CRUDInvoice(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
                 'invoice_id': db_invoice.id,
                 'description': item.description,
                 'quantity': item.quantity,
-                'unit_price': item.unit_price,
+                'rate': item.rate,
                 'amount': item.amount,
                 'position': item.position,
             }

@@ -15,14 +15,14 @@ class InvoiceBase(BaseModel):
     due_date: datetime
     payment_terms: Optional[str] = Field(None, max_length=100)
     currency: str = Field(default="USD", min_length=3, max_length=3)
-    subtotal: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
-    tax_rate: Decimal = Field(default=Decimal("0.00"), ge=0, le=100, decimal_places=2)
-    tax_amount: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
-    discount_amount: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
-    shipping_amount: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
-    total: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
-    amount_paid: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
-    balance_due: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
+    subtotal: Decimal = Field(default=Decimal("0.00"), ge=0)
+    tax_rate: Decimal = Field(default=Decimal("0.00"), ge=0, le=100)
+    tax_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
+    discount_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
+    shipping_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
+    total: Decimal = Field(default=Decimal("0.00"), ge=0)
+    amount_paid: Decimal = Field(default=Decimal("0.00"), ge=0)
+    balance_due: Decimal = Field(default=Decimal("0.00"), ge=0)
     notes: Optional[str] = None
     terms: Optional[str] = None
 
@@ -51,14 +51,14 @@ class InvoiceUpdate(BaseModel):
     due_date: Optional[datetime] = None
     payment_terms: Optional[str] = Field(None, max_length=100)
     currency: Optional[str] = Field(None, min_length=3, max_length=3)
-    subtotal: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    tax_rate: Optional[Decimal] = Field(None, ge=0, le=100, decimal_places=2)
-    tax_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    discount_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    shipping_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    total: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    amount_paid: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    balance_due: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    subtotal: Optional[Decimal] = Field(None, ge=0)
+    tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    tax_amount: Optional[Decimal] = Field(None, ge=0)
+    discount_amount: Optional[Decimal] = Field(None, ge=0)
+    shipping_amount: Optional[Decimal] = Field(None, ge=0)
+    total: Optional[Decimal] = Field(None, ge=0)
+    amount_paid: Optional[Decimal] = Field(None, ge=0)
+    balance_due: Optional[Decimal] = Field(None, ge=0)
     notes: Optional[str] = None
     terms: Optional[str] = None
 

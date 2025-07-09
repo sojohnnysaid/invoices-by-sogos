@@ -16,6 +16,7 @@ function InvoiceForm() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [defaultRate, setDefaultRate] = useState<number>(50);
 
   const [invoice, setInvoice] = useState<Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>>({
     invoiceNumber: '1',
@@ -112,11 +113,44 @@ function InvoiceForm() {
       if (isEdit && id) {
         await invoiceApi.update(id, invoice);
       } else {
-        await invoiceApi.create(invoice);
+        const createdInvoice = await invoiceApi.create(invoice);
+        // Update the state with the created invoice ID
+        setInvoice(createdInvoice);
       }
       navigate('/');
     } catch (err) {
       setError('Failed to save invoice');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      setLoading(true);
+      let invoiceId = id;
+      
+      // If no ID (new invoice), save it first
+      if (!invoiceId) {
+        const createdInvoice = await invoiceApi.create(invoice);
+        invoiceId = createdInvoice.id;
+        setInvoice(createdInvoice);
+      }
+      
+      if (invoiceId) {
+        const blob = await invoiceApi.generatePDF(invoiceId);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoice-${invoice.invoiceNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      setError('Failed to download invoice');
       console.error(err);
     } finally {
       setLoading(false);
@@ -144,8 +178,8 @@ function InvoiceForm() {
         {
           description: '',
           quantity: 1,
-          unitPrice: 0,
-          amount: 0,
+          unitPrice: defaultRate,
+          amount: defaultRate,
         },
       ],
     }));
@@ -272,6 +306,20 @@ function InvoiceForm() {
 
         {/* Line Items */}
         <div className="mt-8">
+          <div className="mb-4 flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700">Default Rate:</label>
+            <input
+              type="number"
+              value={defaultRate}
+              onChange={(e) => setDefaultRate(parseFloat(e.target.value) || 0)}
+              className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              step="0.01"
+              min="0"
+            />
+            <span className="text-sm text-gray-500">
+              This rate will be automatically applied to new line items
+            </span>
+          </div>
           <LineItemsTable
             items={invoice.lineItems}
             onUpdateItem={updateLineItem}
@@ -344,7 +392,9 @@ function InvoiceForm() {
             </button>
             <button
               type="button"
-              className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium"
+              onClick={handleDownload}
+              disabled={!invoice.invoiceNumber || loading}
+              className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Download
             </button>

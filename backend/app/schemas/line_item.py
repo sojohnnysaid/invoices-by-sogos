@@ -7,9 +7,9 @@ from uuid import UUID
 
 class LineItemBase(BaseModel):
     description: str = Field(..., min_length=1)
-    quantity: Decimal = Field(..., gt=0, decimal_places=2)
-    unit_price: Decimal = Field(..., ge=0, decimal_places=2)
-    amount: Decimal = Field(..., ge=0, decimal_places=2)
+    quantity: Decimal = Field(..., gt=0)
+    rate: Decimal = Field(..., ge=0)
+    amount: Decimal = Field(..., ge=0)
     position: int = Field(default=0, ge=0)
 
     class Config:
@@ -24,9 +24,9 @@ class LineItemCreate(LineItemBase):
 
 class LineItemUpdate(BaseModel):
     description: Optional[str] = Field(None, min_length=1)
-    quantity: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
-    unit_price: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
-    amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    quantity: Optional[Decimal] = Field(None, gt=0)
+    rate: Optional[Decimal] = Field(None, ge=0)
+    amount: Optional[Decimal] = Field(None, ge=0)
     position: Optional[int] = Field(None, ge=0)
 
     class Config:

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.crud import invoice as invoice_crud
+from app.crud.invoice import invoice as invoice_crud
 from app.schemas.invoice import InvoiceCreate, InvoiceUpdate, InvoiceWithDetails
 from app.services.pdf_generator import InvoicePDFGenerator
 

@@ -19,7 +19,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import models and Base
-from app.db.base import Base
+from app.models import Base
 from app.models import *  # noqa: F403, F401
 
 # Set target metadata

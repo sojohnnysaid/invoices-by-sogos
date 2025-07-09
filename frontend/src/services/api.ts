@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Invoice, InvoiceParty, LineItem } from '../types/invoice';
+import { Invoice, InvoiceParty } from '../types/invoice';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -12,46 +12,56 @@ const api = axios.create({
 
 // Transform frontend invoice to backend format
 const toBackendFormat = (invoice: Partial<Invoice>) => {
-  const transformed: any = {
-    invoice_number: invoice.invoiceNumber,
-    date: invoice.issueDate,
-    due_date: invoice.dueDate,
-    payment_terms: invoice.paymentTerms,
-    status: invoice.status,
-    currency: invoice.currency,
-    subtotal: invoice.subtotal,
-    tax_rate: invoice.taxRate,
-    tax_amount: invoice.tax,
-    discount_amount: invoice.discount,
-    shipping_amount: invoice.shipping,
-    total: invoice.total,
-    amount_paid: invoice.amountPaid,
-    balance_due: invoice.balanceDue,
-    notes: invoice.notes,
-    terms: invoice.terms,
-  };
+  // Remove undefined values and provide defaults
+  const transformed: any = {};
+  
+  // Required fields
+  if (invoice.invoiceNumber !== undefined) transformed.invoice_number = invoice.invoiceNumber;
+  if (invoice.issueDate !== undefined) {
+    // Ensure date is in ISO format with time
+    const date = new Date(invoice.issueDate + 'T00:00:00');
+    transformed.date = date.toISOString();
+  }
+  if (invoice.dueDate !== undefined) {
+    // Ensure date is in ISO format with time
+    const dueDate = new Date(invoice.dueDate + 'T00:00:00');
+    transformed.due_date = dueDate.toISOString();
+  }
+  if (invoice.status !== undefined) transformed.status = invoice.status;
+  if (invoice.currency !== undefined) transformed.currency = invoice.currency;
+  
+  // Optional fields with defaults
+  if (invoice.paymentTerms !== undefined) transformed.payment_terms = invoice.paymentTerms;
+  if (invoice.subtotal !== undefined) transformed.subtotal = invoice.subtotal;
+  if (invoice.taxRate !== undefined) transformed.tax_rate = invoice.taxRate;
+  if (invoice.tax !== undefined) transformed.tax_amount = invoice.tax;
+  if (invoice.discount !== undefined) transformed.discount_amount = invoice.discount;
+  if (invoice.shipping !== undefined) transformed.shipping_amount = invoice.shipping;
+  if (invoice.total !== undefined) transformed.total = invoice.total;
+  if (invoice.amountPaid !== undefined) transformed.amount_paid = invoice.amountPaid;
+  if (invoice.balanceDue !== undefined) transformed.balance_due = invoice.balanceDue;
+  if (invoice.notes !== undefined) transformed.notes = invoice.notes;
+  if (invoice.terms !== undefined) transformed.terms = invoice.terms;
 
-  // Transform parties
-  if (invoice.from || invoice.to || invoice.shipTo) {
-    transformed.parties = [];
-    if (invoice.from) {
-      transformed.parties.push({
-        party_type: 'from',
-        ...toBackendParty(invoice.from),
-      });
-    }
-    if (invoice.to) {
-      transformed.parties.push({
-        party_type: 'bill_to',
-        ...toBackendParty(invoice.to),
-      });
-    }
-    if (invoice.shipTo) {
-      transformed.parties.push({
-        party_type: 'ship_to',
-        ...toBackendParty(invoice.shipTo),
-      });
-    }
+  // Transform parties - only include if they have a name
+  transformed.parties = [];
+  if (invoice.from && invoice.from.name) {
+    transformed.parties.push({
+      party_type: 'from',
+      ...toBackendParty(invoice.from),
+    });
+  }
+  if (invoice.to && invoice.to.name) {
+    transformed.parties.push({
+      party_type: 'to',
+      ...toBackendParty(invoice.to),
+    });
+  }
+  if (invoice.shipTo && invoice.shipTo.name) {
+    transformed.parties.push({
+      party_type: 'ship_to',
+      ...toBackendParty(invoice.shipTo),
+    });
   }
 
   // Transform line items
@@ -96,7 +106,7 @@ const toBackendParty = (party: InvoiceParty) => ({
 const toFrontendFormat = (data: any): Invoice => {
   const parties = data.parties || [];
   const fromParty = parties.find((p: any) => p.party_type === 'from');
-  const toParty = parties.find((p: any) => p.party_type === 'bill_to');
+  const toParty = parties.find((p: any) => p.party_type === 'to');
   const shipToParty = parties.find((p: any) => p.party_type === 'ship_to');
 
   return {

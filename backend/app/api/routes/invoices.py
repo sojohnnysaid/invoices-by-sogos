@@ -37,7 +37,14 @@ async def get_invoice(invoice_id: UUID, db: Session = Depends(get_db)):
 @router.post("/", response_model=InvoiceWithDetails)
 async def create_invoice(invoice_in: InvoiceCreate, db: Session = Depends(get_db)):
     """Create a new invoice."""
-    return invoice_crud.create_with_details(db, obj_in=invoice_in)
+    try:
+        return invoice_crud.create_with_details(db, obj_in=invoice_in)
+    except Exception as e:
+        import traceback
+        print(f"Error creating invoice: {str(e)}")
+        print(f"Invoice data: {invoice_in.dict()}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise
 
 
 @router.put("/{invoice_id}", response_model=InvoiceWithDetails)

@@ -1318,14 +1318,3 @@ const processOrder = (order: Order) => {
   return submitOrder(finalOrder);
 };
 ```
-
-## Resources and References
-
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
-- [Testing Library Principles](https://testing-library.com/docs/guiding-principles)
-- [Kent C. Dodds Testing JavaScript](https://testingjavascript.com/)
-- [Functional Programming in TypeScript](https://gcanti.github.io/fp-ts/)
-
-## Summary
-
-The key is to write clean, testable, functional code that evolves through small, safe increments. Every change should be driven by a test that describes the desired behavior, and the implementation should be the simplest thing that makes that test pass. When in doubt, favor simplicity and readability over cleverness.

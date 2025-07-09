@@ -227,7 +227,7 @@ class InvoicePDFGenerator:
             data.append([
                 Paragraph(item.description, self.styles['Value']),
                 Paragraph(f'{item.quantity:,.2f}', self.styles['Value']),
-                Paragraph(self._format_currency(item.unit_price, currency), self.styles['Value']),
+                Paragraph(self._format_currency(item.rate, currency), self.styles['Value']),
                 Paragraph(self._format_currency(item.amount, currency), self.styles['Value']),
             ])
         

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Invoice, InvoiceParty } from '../types/invoice';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Use proxy in development, environment variable in production
+const API_URL = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_URL || '/api');
 
 const api = axios.create({
   baseURL: API_URL,

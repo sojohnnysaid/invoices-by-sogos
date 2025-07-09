@@ -45,6 +45,7 @@ function InvoiceView() {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Failed to download PDF:', err);
+      setError('Failed to download PDF. Please try again.');
     }
   };
 

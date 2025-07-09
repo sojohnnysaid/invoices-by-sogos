@@ -18,8 +18,18 @@ function InvoiceForm() {
   const [error, setError] = useState<string | null>(null);
   const [defaultRate, setDefaultRate] = useState<number>(50);
 
+  // Generate unique invoice number based on timestamp
+  const generateInvoiceNumber = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `INV-${year}${month}${day}-${random}`;
+  };
+
   const [invoice, setInvoice] = useState<Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>>({
-    invoiceNumber: '1',
+    invoiceNumber: generateInvoiceNumber(),
     issueDate: format(new Date(), 'yyyy-MM-dd'),
     dueDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
     paymentTerms: 'Net 30',
@@ -82,7 +92,36 @@ function InvoiceForm() {
     try {
       setLoading(true);
       const data = await invoiceApi.getById(invoiceId);
-      setInvoice(data);
+      // Remove fields that aren't in the form state type
+      const { id, createdAt, updatedAt, ...formData } = data;
+      
+      // Ensure all party objects exist with default values
+      const safeFormData = {
+        ...formData,
+        from: formData.from || {
+          name: '',
+          address: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+          email: '',
+          phone: '',
+        },
+        to: formData.to || {
+          name: '',
+          address: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+          email: '',
+          phone: '',
+        },
+        shipTo: formData.shipTo || undefined,
+      };
+      
+      setInvoice(safeFormData);
     } catch (err) {
       setError('Failed to fetch invoice');
       console.error(err);
@@ -260,12 +299,14 @@ function InvoiceForm() {
             onChange={(field, value) => updateParty('to', field, value)}
             showEmail={true}
           />
-          <PartyDetails
-            title="Ship To"
-            party={invoice.shipTo!}
-            onChange={(field, value) => updateParty('shipTo', field, value)}
-            compact={true}
-          />
+          {invoice.shipTo && (
+            <PartyDetails
+              title="Ship To"
+              party={invoice.shipTo}
+              onChange={(field, value) => updateParty('shipTo', field, value)}
+              compact={true}
+            />
+          )}
         </div>
 
         {/* Dates and Payment Terms */}

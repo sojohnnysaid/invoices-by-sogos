@@ -16,13 +16,24 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({
   showEmail = false,
   compact = false 
 }) => {
+  // Ensure party object exists with default values
+  const safeParty = party || {
+    name: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    email: '',
+    phone: ''
+  };
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
       <div className={compact ? "space-y-2" : "space-y-3"}>
         <input
           type="text"
-          value={party.name}
+          value={safeParty.name || ''}
           onChange={(e) => onChange('name', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Name"
@@ -31,7 +42,7 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({
         {showEmail && (
           <input
             type="email"
-            value={party.email || ''}
+            value={safeParty.email || ''}
             onChange={(e) => onChange('email', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Email"
@@ -40,7 +51,7 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({
         
         <input
           type="text"
-          value={party.address}
+          value={safeParty.address || ''}
           onChange={(e) => onChange('address', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Address"
@@ -49,21 +60,21 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({
         <div className="flex gap-2">
           <input
             type="text"
-            value={party.city}
+            value={safeParty.city || ''}
             onChange={(e) => onChange('city', e.target.value)}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="City"
           />
           <input
             type="text"
-            value={party.state}
+            value={safeParty.state || ''}
             onChange={(e) => onChange('state', e.target.value)}
             className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="State"
           />
           <input
             type="text"
-            value={party.zipCode}
+            value={safeParty.zipCode || ''}
             onChange={(e) => onChange('zipCode', e.target.value)}
             className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="ZIP"
@@ -72,7 +83,7 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({
         
         <input
           type="text"
-          value={party.country}
+          value={safeParty.country || ''}
           onChange={(e) => onChange('country', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Country"

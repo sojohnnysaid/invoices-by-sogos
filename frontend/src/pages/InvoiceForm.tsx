@@ -3,6 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { invoiceApi } from '../services/api';
 import { Invoice, LineItem, InvoiceParty } from '../types/invoice';
+import InvoiceHeader from '../components/InvoiceHeader';
+import PartyDetails from '../components/PartyDetails';
+import DatePicker from '../components/DatePicker';
+import LineItemsTable from '../components/LineItemsTable';
+import InvoiceTotals from '../components/InvoiceTotals';
 
 function InvoiceForm() {
   const navigate = useNavigate();
@@ -13,12 +18,14 @@ function InvoiceForm() {
   const [error, setError] = useState<string | null>(null);
 
   const [invoice, setInvoice] = useState<Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>>({
-    invoiceNumber: '',
+    invoiceNumber: '1',
     issueDate: format(new Date(), 'yyyy-MM-dd'),
     dueDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+    paymentTerms: 'Net 30',
     status: 'draft',
+    currency: 'USD',
     from: {
-      name: '',
+      name: 'John Yzaguirre',
       address: '',
       city: '',
       state: '',
@@ -37,11 +44,25 @@ function InvoiceForm() {
       email: '',
       phone: '',
     },
+    shipTo: {
+      name: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: '',
+      email: '',
+      phone: '',
+    },
     lineItems: [],
     subtotal: 0,
     tax: 0,
     taxRate: 0,
+    discount: 0,
+    shipping: 0,
     total: 0,
+    amountPaid: 0,
+    balanceDue: 0,
     notes: '',
     terms: '',
   });
@@ -54,7 +75,7 @@ function InvoiceForm() {
 
   useEffect(() => {
     calculateTotals();
-  }, [invoice.lineItems, invoice.taxRate]);
+  }, [invoice.lineItems, invoice.taxRate, invoice.discount, invoice.shipping, invoice.amountPaid]);
 
   const fetchInvoice = async (invoiceId: string) => {
     try {
@@ -72,13 +93,15 @@ function InvoiceForm() {
   const calculateTotals = () => {
     const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.amount, 0);
     const tax = subtotal * (invoice.taxRate / 100);
-    const total = subtotal + tax;
+    const total = subtotal + tax - invoice.discount + invoice.shipping;
+    const balanceDue = total - invoice.amountPaid;
 
     setInvoice(prev => ({
       ...prev,
       subtotal,
       tax,
       total,
+      balanceDue,
     }));
   };
 
@@ -100,10 +123,13 @@ function InvoiceForm() {
     }
   };
 
-  const updateParty = (party: 'from' | 'to', field: keyof InvoiceParty, value: string) => {
+  const updateParty = (party: 'from' | 'to' | 'shipTo', field: keyof InvoiceParty, value: string) => {
     setInvoice(prev => ({
       ...prev,
-      [party]: {
+      [party]: party === 'shipTo' ? {
+        ...prev.shipTo!,
+        [field]: value,
+      } : {
         ...prev[party],
         [field]: value,
       },
@@ -153,6 +179,20 @@ function InvoiceForm() {
     }));
   };
 
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: { [key: string]: string } = {
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      CAD: 'C$',
+      AUD: 'A$',
+      JPY: '¥',
+      CNY: '¥',
+      INR: '₹',
+    };
+    return symbols[currency] || '$';
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -162,421 +202,156 @@ function InvoiceForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 divide-y divide-gray-200">
-      <div className="space-y-8 divide-y divide-gray-200">
-        <div>
-          <h3 className="text-lg font-medium leading-6 text-gray-900">
-            {isEdit ? 'Edit Invoice' : 'New Invoice'}
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Fill in the invoice details below.
-          </p>
-        </div>
-
+    <div className="max-w-4xl mx-auto p-8 bg-white">
+      <form onSubmit={handleSubmit}>
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
           </div>
         )}
 
-        {/* Invoice Details */}
-        <div className="pt-8">
-          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div className="sm:col-span-2">
-              <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700">
-                Invoice Number
-              </label>
-              <input
-                type="text"
-                name="invoiceNumber"
-                id="invoiceNumber"
-                value={invoice.invoiceNumber}
-                onChange={(e) => setInvoice({ ...invoice, invoiceNumber: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
+        {/* Header Section */}
+        <InvoiceHeader
+          invoiceNumber={invoice.invoiceNumber}
+          currency={invoice.currency}
+          onInvoiceNumberChange={(value) => setInvoice({ ...invoice, invoiceNumber: value })}
+          onCurrencyChange={(value) => setInvoice({ ...invoice, currency: value })}
+        />
 
-            <div className="sm:col-span-2">
-              <label htmlFor="issueDate" className="block text-sm font-medium text-gray-700">
-                Issue Date
-              </label>
-              <input
-                type="date"
-                name="issueDate"
-                id="issueDate"
-                value={invoice.issueDate}
-                onChange={(e) => setInvoice({ ...invoice, issueDate: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
-                Due Date
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                id="dueDate"
-                value={invoice.dueDate}
-                onChange={(e) => setInvoice({ ...invoice, dueDate: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-          </div>
+        {/* Bill To and Ship To Section */}
+        <div className="grid grid-cols-2 gap-8 mt-8">
+          <PartyDetails
+            title="Bill To"
+            party={invoice.to}
+            onChange={(field, value) => updateParty('to', field, value)}
+            showEmail={true}
+          />
+          <PartyDetails
+            title="Ship To"
+            party={invoice.shipTo!}
+            onChange={(field, value) => updateParty('shipTo', field, value)}
+            compact={true}
+          />
         </div>
 
-        {/* From Section */}
-        <div className="pt-8">
-          <h4 className="text-md font-medium text-gray-900 mb-4">From</h4>
-          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div className="sm:col-span-3">
-              <label htmlFor="from-name" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                type="text"
-                id="from-name"
-                value={invoice.from.name}
-                onChange={(e) => updateParty('from', 'name', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-3">
-              <label htmlFor="from-email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                id="from-email"
-                value={invoice.from.email}
-                onChange={(e) => updateParty('from', 'email', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-
-            <div className="sm:col-span-6">
-              <label htmlFor="from-address" className="block text-sm font-medium text-gray-700">
-                Address
-              </label>
-              <input
-                type="text"
-                id="from-address"
-                value={invoice.from.address}
-                onChange={(e) => updateParty('from', 'address', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="from-city" className="block text-sm font-medium text-gray-700">
-                City
-              </label>
-              <input
-                type="text"
-                id="from-city"
-                value={invoice.from.city}
-                onChange={(e) => updateParty('from', 'city', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="from-state" className="block text-sm font-medium text-gray-700">
-                State
-              </label>
-              <input
-                type="text"
-                id="from-state"
-                value={invoice.from.state}
-                onChange={(e) => updateParty('from', 'state', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="from-zipCode" className="block text-sm font-medium text-gray-700">
-                ZIP Code
-              </label>
-              <input
-                type="text"
-                id="from-zipCode"
-                value={invoice.from.zipCode}
-                onChange={(e) => updateParty('from', 'zipCode', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
+        {/* Dates and Payment Terms */}
+        <div className="grid grid-cols-4 gap-4 mt-8">
+          <DatePicker
+            label="Date"
+            value={invoice.issueDate}
+            onChange={(value) => setInvoice({ ...invoice, issueDate: value })}
+          />
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Payment Terms</label>
+            <select
+              value={invoice.paymentTerms}
+              onChange={(e) => setInvoice({ ...invoice, paymentTerms: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="Net 30">Net 30</option>
+              <option value="Net 15">Net 15</option>
+              <option value="Net 60">Net 60</option>
+              <option value="Due on Receipt">Due on Receipt</option>
+              <option value="EOM">EOM</option>
+            </select>
           </div>
-        </div>
-
-        {/* To Section */}
-        <div className="pt-8">
-          <h4 className="text-md font-medium text-gray-900 mb-4">To</h4>
-          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div className="sm:col-span-3">
-              <label htmlFor="to-name" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                type="text"
-                id="to-name"
-                value={invoice.to.name}
-                onChange={(e) => updateParty('to', 'name', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-3">
-              <label htmlFor="to-email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                id="to-email"
-                value={invoice.to.email}
-                onChange={(e) => updateParty('to', 'email', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-
-            <div className="sm:col-span-6">
-              <label htmlFor="to-address" className="block text-sm font-medium text-gray-700">
-                Address
-              </label>
-              <input
-                type="text"
-                id="to-address"
-                value={invoice.to.address}
-                onChange={(e) => updateParty('to', 'address', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="to-city" className="block text-sm font-medium text-gray-700">
-                City
-              </label>
-              <input
-                type="text"
-                id="to-city"
-                value={invoice.to.city}
-                onChange={(e) => updateParty('to', 'city', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="to-state" className="block text-sm font-medium text-gray-700">
-                State
-              </label>
-              <input
-                type="text"
-                id="to-state"
-                value={invoice.to.state}
-                onChange={(e) => updateParty('to', 'state', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="to-zipCode" className="block text-sm font-medium text-gray-700">
-                ZIP Code
-              </label>
-              <input
-                type="text"
-                id="to-zipCode"
-                value={invoice.to.zipCode}
-                onChange={(e) => updateParty('to', 'zipCode', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
+          <DatePicker
+            label="Due Date"
+            value={invoice.dueDate}
+            onChange={(value) => setInvoice({ ...invoice, dueDate: value })}
+          />
+          <div className="flex items-end">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              Save as Default
+            </button>
           </div>
         </div>
 
         {/* Line Items */}
-        <div className="pt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-md font-medium text-gray-900">Line Items</h4>
-            <button
-              type="button"
-              onClick={addLineItem}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Add Item
-            </button>
-          </div>
+        <div className="mt-8">
+          <LineItemsTable
+            items={invoice.lineItems}
+            onUpdateItem={updateLineItem}
+            onRemoveItem={removeLineItem}
+            onAddItem={addLineItem}
+            currencySymbol={getCurrencySymbol(invoice.currency)}
+          />
+        </div>
 
+        {/* Notes and Terms with Totals */}
+        <div className="grid grid-cols-2 gap-8 mt-8">
           <div className="space-y-4">
-            {invoice.lineItems.map((item, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                  <div className="sm:col-span-6">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      required
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Unit Price
-                    </label>
-                    <input
-                      type="number"
-                      value={item.unitPrice}
-                      onChange={(e) => updateLineItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      required
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Amount
-                    </label>
-                    <div className="mt-1 px-3 py-2 bg-gray-100 rounded-md text-sm">
-                      ${item.amount.toFixed(2)}
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-12 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => removeLineItem(index)}
-                      className="text-red-600 hover:text-red-700 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Totals */}
-        <div className="pt-8">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div></div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Subtotal:</span>
-                <span>${invoice.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span>Tax:</span>
-                  <input
-                    type="number"
-                    value={invoice.taxRate}
-                    onChange={(e) => setInvoice({ ...invoice, taxRate: parseFloat(e.target.value) || 0 })}
-                    className="w-16 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    min="0"
-                    step="0.01"
-                  />
-                  <span>%</span>
-                </div>
-                <span>${invoice.tax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-lg font-medium">
-                <span>Total:</span>
-                <span>${invoice.total.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Notes and Terms */}
-        <div className="pt-8">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                Notes
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
               <textarea
-                id="notes"
-                name="notes"
-                rows={4}
                 value={invoice.notes}
                 onChange={(e) => setInvoice({ ...invoice, notes: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Notes - any relevant information not already covered"
               />
             </div>
-
             <div>
-              <label htmlFor="terms" className="block text-sm font-medium text-gray-700">
-                Terms & Conditions
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Terms</label>
               <textarea
-                id="terms"
-                name="terms"
-                rows={4}
                 value={invoice.terms}
                 onChange={(e) => setInvoice({ ...invoice, terms: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Terms and conditions - late fees, payment methods, delivery schedule"
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Form Actions */}
-      <div className="pt-5">
-        <div className="flex justify-end">
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <InvoiceTotals
+              subtotal={invoice.subtotal}
+              taxRate={invoice.taxRate}
+              tax={invoice.tax}
+              discount={invoice.discount}
+              shipping={invoice.shipping}
+              total={invoice.total}
+              amountPaid={invoice.amountPaid}
+              balanceDue={invoice.balanceDue}
+              onTaxRateChange={(value) => setInvoice({ ...invoice, taxRate: value })}
+              onDiscountChange={(value) => setInvoice({ ...invoice, discount: value })}
+              onShippingChange={(value) => setInvoice({ ...invoice, shipping: value })}
+              onAmountPaidChange={(value) => setInvoice({ ...invoice, amountPaid: value })}
+              currencySymbol={getCurrencySymbol(invoice.currency)}
+            />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center mt-8">
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="px-4 py-2 text-gray-600 hover:text-gray-700"
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            {loading ? 'Saving...' : (isEdit ? 'Update' : 'Create')}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            >
+              {loading ? 'Saving...' : (isEdit ? 'Update' : 'Save Draft')}
+            </button>
+            <button
+              type="button"
+              className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium"
+            >
+              Download
+            </button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
 

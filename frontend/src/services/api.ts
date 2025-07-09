@@ -20,12 +20,16 @@ const toBackendFormat = (invoice: Partial<Invoice>) => {
   if (invoice.invoiceNumber !== undefined) transformed.invoice_number = invoice.invoiceNumber;
   if (invoice.issueDate !== undefined) {
     // Ensure date is in ISO format with time
-    const date = new Date(invoice.issueDate + 'T00:00:00');
+    // If already contains 'T', it's already in ISO format
+    const dateStr = invoice.issueDate.includes('T') ? invoice.issueDate : invoice.issueDate + 'T00:00:00';
+    const date = new Date(dateStr);
     transformed.date = date.toISOString();
   }
   if (invoice.dueDate !== undefined) {
     // Ensure date is in ISO format with time
-    const dueDate = new Date(invoice.dueDate + 'T00:00:00');
+    // If already contains 'T', it's already in ISO format
+    const dateStr = invoice.dueDate.includes('T') ? invoice.dueDate : invoice.dueDate + 'T00:00:00';
+    const dueDate = new Date(dateStr);
     transformed.due_date = dueDate.toISOString();
   }
   if (invoice.status !== undefined) transformed.status = invoice.status;
@@ -113,8 +117,8 @@ const toFrontendFormat = (data: any): Invoice => {
   return {
     id: data.id,
     invoiceNumber: data.invoice_number,
-    issueDate: data.date,
-    dueDate: data.due_date,
+    issueDate: data.date ? data.date.split('T')[0] : '',
+    dueDate: data.due_date ? data.due_date.split('T')[0] : '',
     paymentTerms: data.payment_terms,
     status: data.status,
     currency: data.currency,

@@ -61,6 +61,8 @@ class InvoiceUpdate(BaseModel):
     balance_due: Optional[Decimal] = Field(None, ge=0)
     notes: Optional[str] = None
     terms: Optional[str] = None
+    parties: Optional[List['InvoicePartyCreate']] = None
+    line_items: Optional[List['LineItemCreate']] = None
 
     class Config:
         json_encoders = {
@@ -90,3 +92,4 @@ class InvoiceWithDetails(Invoice):
 from .invoice_party import InvoicePartyCreate
 from .line_item import LineItemCreate
 InvoiceCreate.model_rebuild()
+InvoiceUpdate.model_rebuild()

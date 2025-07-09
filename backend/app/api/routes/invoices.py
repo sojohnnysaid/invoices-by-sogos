@@ -54,11 +54,16 @@ async def update_invoice(
     db: Session = Depends(get_db)
 ):
     """Update an existing invoice."""
+    print(f"Updating invoice {invoice_id}")
+    print(f"Update data: {invoice_in.dict()}")
+    
     invoice = invoice_crud.get(db, id=invoice_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    return invoice_crud.update_with_details(db, db_obj=invoice, obj_in=invoice_in)
+    result = invoice_crud.update_with_details(db, db_obj=invoice, obj_in=invoice_in)
+    print(f"Update result: Invoice {result.invoice_number}, items: {len(result.line_items)}")
+    return result
 
 
 @router.delete("/{invoice_id}")

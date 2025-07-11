@@ -178,14 +178,12 @@ function InvoiceForm() {
       }
       
       if (invoiceId) {
-        const blob = await invoiceApi.generatePDF(invoiceId);
-        const url = window.URL.createObjectURL(blob);
+        // Direct download approach to preserve server headers
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `invoice-${invoice.invoiceNumber}.pdf`;
+        a.href = `/api/invoices/${invoiceId}/pdf?t=${Date.now()}`;
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       }
     } catch (err) {

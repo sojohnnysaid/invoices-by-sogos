@@ -196,7 +196,7 @@ export const invoiceApi = {
 
   // Generate PDF
   generatePDF: async (id: string): Promise<Blob> => {
-    const response = await api.get(`/invoices/${id}/pdf`, {
+    const response = await api.get(`/invoices/${id}/pdf?t=${Date.now()}`, {
       responseType: 'blob',
     });
     return response.data;

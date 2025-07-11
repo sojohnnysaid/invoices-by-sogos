@@ -93,12 +93,25 @@ async def get_invoice_pdf(invoice_id: UUID, db: Session = Depends(get_db)):
         line_items=invoice.line_items
     )
     
+    # Generate filename with current date
+    from datetime import datetime
+    now = datetime.now()
+    month_names = ["January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November", "December"]
+    month = month_names[now.month - 1]
+    day = now.day
+    year = now.year
+    filename = f"INVOICE-John-Yzaguirre-{month}-{day}-{year}.pdf"
+    
     # Return PDF response
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="invoice-{invoice.invoice_number}.pdf"'
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
         }
     )
 

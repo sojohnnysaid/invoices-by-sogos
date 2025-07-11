@@ -34,14 +34,12 @@ function InvoiceView() {
     if (!invoice || !id) return;
 
     try {
-      const blob = await invoiceApi.generatePDF(id);
-      const url = window.URL.createObjectURL(blob);
+      // Direct download approach to preserve server headers
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${invoice.invoiceNumber}.pdf`;
+      a.href = `/api/invoices/${id}/pdf?t=${Date.now()}`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
       console.error('Failed to download PDF:', err);
